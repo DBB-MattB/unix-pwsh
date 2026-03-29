@@ -1,5 +1,5 @@
-$githubUser = "CrazyWolf13" # Change this here if you forked the repository.
-$name= "User" # Change this to your name.
+$githubUser = "DBB-MattB" # Change this here if you forked the repository.
+$name= "Matt" # Change this to your name.
 $githubRepo = "unix-pwsh" # Change this here if you forked the repository and changed the name.
 $githubBaseURL= "https://raw.githubusercontent.com/$githubUser/$githubRepo/main"
 $OhMyPoshConfigFileName = "montys.omp.json" # Filename of the OhMyPosh config file
@@ -8,7 +8,7 @@ $OhMyPoshConfig = "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/m
 # -----------------------------------------------------------------------------
 
 # Check internet access
-# Use wmi as there is no timeout in pwsh  5.0 and generally slow.
+# Use WMI as there is no timeout in PowerShell 5.0 and it is generally slow.
 $timeout = 1000 
 $pingResult = Get-CimInstance -ClassName Win32_PingStatus -Filter "Address = 'github.com' AND Timeout = $timeout" -Property StatusCode 2>$null
 if ($pingResult.StatusCode -eq 0) {
@@ -21,14 +21,14 @@ if ($pingResult.StatusCode -eq 0) {
 $baseDir = "$HOME\unix-pwsh"
 $configPath = "$baseDir\pwsh_custom_config.yml"
 $xConfigPath = "$baseDir\pwsh_full_custom_config.yml" # This file exists if the prompt is fully installed with all dependencies.
-$promptColor = "DarkCyan" # Choose a color in which the hello text is colored; All Colors: Black, Blue, Cyan, DarkBlue, DarkCyan, DarkGray, DarkGreen, DarkMagenta, DarkRed, DarkYellow, Gray, Green, Magenta, Red, White, Yellow.
+$promptColor = "DarkCyan" # Choose a colour in which the hello text is colored; All Colours: Black, Blue, Cyan, DarkBlue, DarkCyan, DarkGray, DarkGreen, DarkMagenta, DarkRed, DarkYellow, Grey, Green, Magenta, Red, White, Yellow.
 $font="FiraCode" # Font-Display and variable Name, name the same as font_folder
 $font_url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip" # Put here the URL of the font file that should be installed
 $fontFileName = "FiraCodeNerdFontMono-Regular.ttf" # Put here the font file that should be installed
 $font_folder = "FiraCode" # Put here the name of the zip folder of the downloaded font, but without the .zip extension.
 
 $modules = @( 
-    # This is a list of modules that need to be imported / installed
+    # This is a list of modules that need to be imported/installed
     @{ Name = "Powershell-Yaml"; ConfigKey = "Powershell-Yaml_installed" },
     @{ Name = "Terminal-Icons"; ConfigKey = "Terminal-Icons_installed" },
     @{ Name = "PoshFunctions"; ConfigKey = "PoshFunctions_installed" }
@@ -37,13 +37,13 @@ $files = @("Microsoft.PowerShell_profile.ps1", "installer.ps1", "pwsh_helper.ps1
 
 # Message to tell the user what to do after installation
 $infoMessage = @"
-To fully utilize the custom Unix-pwsh profile, please follow these steps:
+To fully utilise the custom Unix-pwsh profile, please follow these steps:
 1. Set Windows Terminal as the default terminal.
 2. Choose PowerShell Core as the preferred startup profile in Windows Terminal.
 3. Go to Settings > Defaults > Appearance > Font and select the Nerd Font.
 
 These steps are necessary to ensure the pwsh profile works as intended.
-If you have further questions, on how to set the above, don't hesitate to ask me, by filing an issue on my repository, after you tried searching the web for yourself.
+If you have further questions on how to set the above, don't hesitate to ask me by filing an issue on my repository after you have tried searching the web for yourself.
 "@
 
 $scriptBlock = {
@@ -56,7 +56,7 @@ $scriptBlock = {
 # Functions
 # -----------------------------------------------------------------------------
 
-# Function for calling the update Powershell Script
+# Function for calling the update PowerShell Script
 function Run-UpdatePowershell {
     . Invoke-Expression (Invoke-WebRequest -Uri "$githubBaseURL/pwsh_helper.ps1" -UseBasicParsing).Content
     Update-Powershell
@@ -77,9 +77,9 @@ if ($allFilesExist -contains $false) {
     $OhMyPoshConfig = Join-Path -Path $baseDir -ChildPath $OhMyPoshConfigFileName
 }
 
-# Check for dependencies and if not chainload the installer.
+# Check for dependencies and if not, chainload the installer.
 if (Test-Path -Path $xConfigPath) {
-    # Check if the Master config file exists, if so skip every other check.
+    # Check if the Master config file exists; if so, skip every other check.
     Write-Host "✅ Successfully initialized Pwsh`n" -ForegroundColor Green
     Import-Module Terminal-Icons
     # foreach ($module in $modules) {
@@ -89,7 +89,7 @@ if (Test-Path -Path $xConfigPath) {
 } else {
     # If there is no internet connection, we cannot install anything.
     if (-not $global:canConnectToGitHub) {
-        Write-Host "❌ Skipping initialization due to GitHub not responding within 4 second." -ForegroundColor Red
+        Write-Host "❌ Skipping initialisation due to GitHub not responding within 4 seconds." -ForegroundColor Red
         exit
     }
     . Invoke-Expression (Invoke-WebRequest -Uri "$githubBaseURL/installer.ps1" -UseBasicParsing).Content
@@ -125,7 +125,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
             # Update PowerShell in the background
             Start-Job -ScriptBlock $scriptBlock -ArgumentList $githubUser, $files, $baseDir, $canConnectToGitHub, $githubBaseURL
                 } else {
-            Write-Host "❌ Skipping initialization due to GitHub not responding within 1 second." -ForegroundColor Red
+            Write-Host "❌ Skipping initialisation due to GitHub not responding within 1 second." -ForegroundColor Red
         }
     }
 }
@@ -144,7 +144,7 @@ $Deferred = {
             # Update PowerShell in the background
             Start-Job -ScriptBlock $scriptBlock -ArgumentList $githubUser, $files, $baseDir, $canConnectToGitHub, $githubBaseURL
             } else {
-            Write-Host "❌ Skipping initialization due to GitHub not responding within 1 second." -ForegroundColor Red
+            Write-Host "❌ Skipping initialisation due to GitHub not responding within 1 second." -ForegroundColor Red
         }
     }
 }
