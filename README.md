@@ -62,7 +62,7 @@ However, this preview is not so meaningful, as most of the visual configuration 
 
 ## Usage 🚀
 - To activate this configuration:
-1. Paste in this command: `iex (iwr "https://raw.githubusercontent.com/CrazyWolf13/unix-pwsh/main/Microsoft.PowerShell_profile.ps1").Content`.
+1. Paste in this command: `iex (iwr "https://raw.githubusercontent.com/DBB-MattB/unix-pwsh/main/Microsoft.PowerShell_profile.ps1").Content`.
 2. The PowerShell profile is automatically created and the profile is injected into it if it does not exist. If it exists, manually place the snippet provided here into the $PROFILE by typing `notepad $PROFILE` into PowerShell. 🛠️:
 > ```powershell
 > if (Test-Path (Join-Path -Path $env:USERPROFILE -ChildPath "unix-pwsh\Microsoft.PowerShell_profile.ps1")) { . (Join-Path -Path $env:USERPROFILE -ChildPath  "unix-pwsh\Microsoft.PowerShell_profile.ps1") } else { iex (iwr "https://raw.githubusercontent.com/DBB-MattB/unix-pwsh/main/Microsoft.PowerShell_profile.ps1").Content }
