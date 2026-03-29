@@ -19,17 +19,17 @@
 
 Welcome to my personal PowerShell profile repository! 🎉 This collection of PowerShell scripts is designed to bring a touch of the Linux command-line experience to Windows systems. 🐧By implementing popular Linux commands like cat, grep, and more, you can enjoy a more familiar and powerful command-line environment. 🛠️
 
-Feel free to use, fork, and customize these scripts to enhance your own command-line experience. 🔧
-Developed for personal use, but feel free to use, fork, and customize this as you like. 🚀
+Feel free to use, fork, and customise these scripts to enhance your own command-line experience. 🔧
+Developed for personal use, but feel free to use, fork, and customise this as you like. 🚀
 
 
 ## Disclaimer: ⚠️
-Never directly inject any code from the World-Wide-Web into your devices, that you have not read through and verified it's safe!
+Never directly inject any code from the World-Wide-Web into your devices, that you have not read through and verified its safe!
 To make sure this can never happen to you, fork this repository and edit the file: `Microsoft.PowerShell_profile.ps1` and change the Variable `$GithubUser` and `$Name` to your GithubUsername and your real name for the Welcoming Message.
 
 
 ## TL:DR
-- Paste this into your Powershell, make sure to change the username if you forked the repository:
+- Paste this into your PowerShell, make sure to change the username if you forked the repository:
 ```bash
 iex (iwr "https://raw.githubusercontent.com/DBB-MattB/unix-pwsh/main/Microsoft.PowerShell_profile.ps1").Content
 ```
@@ -39,11 +39,11 @@ iex (iwr "https://raw.githubusercontent.com/DBB-MattB/unix-pwsh/main/Microsoft.P
 - **Oh My Posh Integration**: Enhances the user interface with stylish prompts and Git status indicators. ⚡
 - **Deferred Loading**: Improves function loading time for a smoother experience. 🕒
 - **Automatic Installation**: The scripts automatically install necessary modules and components on first execution. 🛠️
-- **Automatic Updates**: This projects updates itself in the background, just make sure to merge changes if you forked my repository.
-- **Local Cache**: Improved speed by using a local cache of all the files which is frequently pulled from the internet, allowing full offline access.
+- **Automatic Updates**: This project updates itself in the background; just make sure to merge changes if you forked my repository.
+- **Local Cache**: Improved speed by using a local cache of all the files, which are frequently pulled from the internet, allowing full offline access.
 
 ## Showcase 🌟
-Here is an image, how the finished config looks like, but this can be easily changed, via OhMyPosh.
+Here is an image of what the finished config looks like, but this can be easily changed via OhMyPosh.
 However, this preview is not so meaningful, as most of the visual configuration is done by OhMyPosh.
 ![Showcase](./assets/showcase_pwsh.png)
 
@@ -58,12 +58,12 @@ However, this preview is not so meaningful, as most of the visual configuration 
 ## Configuration 📁
 - The configuration file is located at: `~/pwsh_custom_config.yml`. This file stores all the configuration variables, facilitating faster loading by eliminating the need to check for installed elements every time.
 
-- All configurable options, including module installation preferences and feature toggles, are centralized within this YAML file. This centralized approach streamlines the initialization process, ensuring a quicker and more efficient startup experience. 🚀
+- All configurable options, including module installation preferences and feature toggles, are centralised within this YAML file. This centralised approach streamlines the initialisation process, ensuring a quicker and more efficient startup experience. 🚀
 
 ## Usage 🚀
 - To activate this configuration:
 1. Paste in this command: `iex (iwr "https://raw.githubusercontent.com/CrazyWolf13/unix-pwsh/main/Microsoft.PowerShell_profile.ps1").Content`.
-2. The PowerShell profile is automatically created and the profile injected into, if it does not exist. If it exists, manually place the snippet provided here into the $PROFILE by typing `notepad $PROFILE` into PowerShell. 🛠️:
+2. The PowerShell profile is automatically created and the profile is injected into it if it does not exist. If it exists, manually place the snippet provided here into the $PROFILE by typing `notepad $PROFILE` into PowerShell. 🛠️:
 > ```powershell
 > if (Test-Path (Join-Path -Path $env:USERPROFILE -ChildPath "unix-pwsh\Microsoft.PowerShell_profile.ps1")) { . (Join-Path -Path $env:USERPROFILE -ChildPath  "unix-pwsh\Microsoft.PowerShell_profile.ps1") } else { iex (iwr "https://raw.githubusercontent.com/DBB-MattB/unix-pwsh/main/Microsoft.PowerShell_profile.ps1").Content }
 > ```
@@ -99,7 +99,7 @@ The PowerShell profile includes aliases and functions that mimic common Linux co
 - `uptime`: Displays system uptime.
 - `ssh-copy-key`: Copies SSH public keys to a remote server.
 - `explrestart`: Restarts Windows Explorer.
-- `expl`: Opens File Explorer at the currenct location.
+- `expl`: Opens File Explorer at the current location.
 - `Get-PubIP`: Retrieves the public IP address.
 - `Get-PrivIP`: Retrieves the private IP address.
 - `gitpush`: Also known as lazy-git, pulls, adds all, commits the message after gitpush and then pushes.
@@ -114,7 +114,7 @@ The PowerShell profile includes aliases and functions that mimic common Linux co
 
 
 ## Personalization 🎨
-- Customize the scripts according to personal preferences or specific system requirements.
+- Customise the scripts according to personal preferences or specific system requirements.
 - To use a forked version, update the `githubUser` variable to point to your own forked repository.
 - To make your own name appear on the Welcome Screen, just fork this repo and edit the main file located in the pwsh folder and edit the variable `$name` to your own name.
 - To insert your own OhMyPosh config, just fork the repo and change the URL in the main file to your own.
