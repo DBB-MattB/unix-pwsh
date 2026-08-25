@@ -136,4 +136,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-*Developed by CrazyWolf13 with ❤️*
+*Based on CrazyWolf13's profile ❤️*
