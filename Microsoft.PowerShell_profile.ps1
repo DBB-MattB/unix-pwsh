@@ -93,6 +93,7 @@ if (Test-Path -Path $xConfigPath) {
         exit
     }
     . Invoke-Expression (Invoke-WebRequest -Uri "$githubBaseURL/installer.ps1" -UseBasicParsing).Content
+    Test-ExecPolicy
     Install-NuGet
     Test-Pwsh 
     Test-CreateProfile
@@ -176,7 +177,7 @@ function Initialize-PSReadLine {
     # Keep secrets out of the PSReadLine history file
     Set-PSReadLineOption -AddToHistoryHandler {
         param([string]$line)
-        $line -notmatch '(?i)(password|secret|token|apikey|connectionstring)'
+        $line -notmatch '(?i)(password|secret|token|api[-_]?key|private[-_]?key|connection[-_]?string)'
     }
 }
 
@@ -194,6 +195,15 @@ function Register-CustomCompletion {
     Register-ArgumentCompleter -Native -CommandName git, npm, deno -ScriptBlock {
         param($wordToComplete, $commandAst, $cursorPosition)
         $null = $cursorPosition
+        $commandText = $commandAst.ToString()
+        $isLaterArgument = $commandAst.CommandElements.Count -gt 2 -or (
+            $commandAst.CommandElements.Count -eq 2 -and
+            [string]::IsNullOrWhiteSpace($wordToComplete) -and
+            $commandText -match '\s$'
+        )
+        if ($isLaterArgument) {
+            return
+        }
         $completionWord = $wordToComplete
         $map = $completionMap
         $command = $commandAst.CommandElements[0].Value

@@ -107,14 +107,19 @@ function Test-ohmyposh {
 }
 
 function Test-NerdFontInstalled {
-    $nerdfonts = Get-Font *$font*
-    if ($nerdfonts) {
+    $installedFontPath = Join-Path -Path (Join-Path -Path $env:WINDIR -ChildPath 'Fonts') -ChildPath $fontFileName
+    if (Test-Path -Path $installedFontPath) {
         Set-ConfigValue -Key "${font}_installed" -Value "True"
     } else {
         Write-Host "❌ No Nerd-Fonts are installed." -ForegroundColor Red
         $installNerdFonts = Read-Host "Do you want to install $font NerdFont? (Y/N)"
         if ($installNerdFonts -eq 'Y' -or $installNerdFonts -eq 'y') {
             Install-NerdFont
+            if (Test-Path -Path $installedFontPath) {
+                Set-ConfigValue -Key "${font}_installed" -Value "True"
+            } else {
+                Set-ConfigValue -Key "${font}_installed" -Value "False"
+            }
         } else {
             Write-Host "❌ NerdFonts installation skipped." -ForegroundColor Yellow
             Set-ConfigValue -Key "${font}_installed" -Value "False"

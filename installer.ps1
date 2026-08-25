@@ -97,14 +97,15 @@ function Initialize-DevEnv {
         $isInstalled = Get-ConfigValue -Key $module.ConfigKey
         if ($isInstalled -ne "True") {
             Write-Host "Initializing $($module.Name) module..."
-            Initialize-Module $module.Name
-        } else {
-            Import-Module $module.Name
+        }
+        if (Initialize-Module $module.Name) {
             $importedModuleCount++
         }
     }
     if ($importedModuleCount -eq @($modules).Count) {
-        New-Item -ItemType File -Path $xConfigPath | Out-Null
+        if (-not (Test-Path -Path $xConfigPath)) {
+            New-Item -ItemType File -Path $xConfigPath | Out-Null
+        }
     }
     Write-Host "✅ Imported $importedModuleCount modules successfully." -ForegroundColor Green
     if ($ohmyposh_installed -ne "True") { 
@@ -205,18 +206,30 @@ function Initialize-Module {
         if ($global:canConnectToGitHub) {
             try {
                 Install-Module -Name $moduleName -Scope CurrentUser -SkipPublisherCheck
+                Import-Module -Name $moduleName -ErrorAction Stop
                 Set-ConfigValue -Key "${moduleName}_installed" -Value "True"
+                return $true
             } catch {
                 Write-Error "❌ Failed to install module ${moduleName}: $_"
+                Set-ConfigValue -Key "${moduleName}_installed" -Value "False"
+                return $false
             }
         } else {
             Write-Host "❌ Skipping Module initialization check due to GitHub.com not responding within 1 second." -ForegroundColor Yellow
+            return $false
         }
     } else {
-        # If the module is already installed, set the config value and import it
-        Set-ConfigValue -Key "${moduleName}_installed" -Value "True"
-        Import-Module -Name $moduleName
-        Write-Host "✅ Module $moduleName is already installed. Importing..."
+        # If the module is already installed, import it.
+        try {
+            Import-Module -Name $moduleName -ErrorAction Stop
+            Set-ConfigValue -Key "${moduleName}_installed" -Value "True"
+            Write-Host "✅ Module $moduleName is already installed. Importing..."
+            return $true
+        } catch {
+            Write-Error "❌ Failed to import module ${moduleName}: $_"
+            Set-ConfigValue -Key "${moduleName}_installed" -Value "False"
+            return $false
+        }
     }
 }
 

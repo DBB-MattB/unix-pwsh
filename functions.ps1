@@ -454,7 +454,7 @@ function mkcd {
 # Find files recursively by name
 function ff {
     param([Parameter(Mandatory)][string]$Name)
-    Get-ChildItem -Recurse -Filter "*$Name*" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+    Get-ChildItem -Recurse -File -Filter "*$Name*" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 }
 
 # Create a new empty file in the current directory
@@ -525,10 +525,16 @@ function lazyg {
 
 # Go to the GitHub directory (via zoxide when available)
 function g {
+    $fallbackPath = "$HOME\github"
     if (Get-Command __zoxide_z -ErrorAction SilentlyContinue) {
+        $startPath = (Get-Location).ProviderPath
         __zoxide_z github
-    } elseif (Test-Path -Path "$HOME\github") {
-        Set-Location "$HOME\github"
+        $endPath = (Get-Location).ProviderPath
+        if ($startPath -eq $endPath -and (Test-Path -Path $fallbackPath)) {
+            Set-Location $fallbackPath
+        }
+    } elseif (Test-Path -Path $fallbackPath) {
+        Set-Location $fallbackPath
     }
 }
 
@@ -567,7 +573,7 @@ function admin {
     $shellArgs = if ($args.Count -gt 0) { @('-NoExit', '-Command', ($args -join ' ')) } else { @('-NoExit') }
 
     if (Get-Command wt -ErrorAction SilentlyContinue) {
-        Start-Process wt -Verb RunAs -ArgumentList (@('-d', $cwd, $shell) + $shellArgs)
+        Start-Process wt -Verb RunAs -ArgumentList (@('-d', "`"$cwd`"", $shell) + $shellArgs)
     } else {
         Start-Process $shell -Verb RunAs -WorkingDirectory $cwd -ArgumentList $shellArgs
     }
