@@ -106,7 +106,7 @@ function Test-ohmyposh {
     } 
 }
 
-function Test-$font {
+function Test-NerdFontInstalled {
     $nerdfonts = Get-Font *$font*
     if ($nerdfonts) {
         Set-ConfigValue -Key "${font}_installed" -Value "True"
@@ -117,7 +117,7 @@ function Test-$font {
             Install-NerdFont
         } else {
             Write-Host "❌ NerdFonts installation skipped." -ForegroundColor Yellow
-            Set-ConfigValue -Key "$font_installed" -Value "False"
+            Set-ConfigValue -Key "${font}_installed" -Value "False"
         }
     }
 }

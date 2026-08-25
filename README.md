@@ -81,10 +81,10 @@ The PowerShell profile includes aliases and functions that mimic common Linux co
 - `which`: Locates a command.
 - `export`: Sets environment variables. PowerShell equivalent: `Set-Item`.
 - `pgrep`: Searches for processes by name. PowerShell equivalent: `Get-Process`.
-- `grep`: Searches for patterns in files.
+- `grep`: Searches for patterns in files or piped input.
 - `pkill`: Terminates processes by name.
 - `head`: Displays the beginning of a file.
-- `tail`: Displays the end of a file. 
+- `tail`: Displays the end of a file; use `tail -f` to follow changes.
 - `unzip`: Extracts files from a zip archive. PowerShell equivalent: function `expand-archive`.
 - `du`: Displays disk usage statistics.
 - `ll`: Lists files in a directory.
@@ -100,11 +100,22 @@ The PowerShell profile includes aliases and functions that mimic common Linux co
 - `ssh-copy-key`: Copies SSH public keys to a remote server.
 - `explrestart`: Restarts Windows Explorer.
 - `expl`: Opens File Explorer at the current location.
-- `Get-PubIP`: Retrieves the public IP address.
+- `Get-PubIP` / `pubip`: Retrieves the public IP address.
 - `Get-PrivIP`: Retrieves the private IP address.
 - `gitpush`: Also known as lazy-git, pulls, adds all, commits the message after gitpush and then pushes.
-- `ptw`: Send text/files pipe output to a wastebin server, important: contact me via issue for this.
+- `ptw`: Send text/files pipe output to a wastebin server. By default it uses the public server `https://bin.crazywolf.dev`; point the `$WastebinServerUrl` variable at the top of `functions.ps1` at your own server if you run one.
 - `touch`: Updates timestamp or creates file if missing.
+
+## Extra Shortcuts & Helpers ⚡
+On top of the Linux-like commands, the profile also includes these helpers (run `Show-Help` in PowerShell to see the full list):
+
+- Git shortcuts: `gs` (status), `ga` (add all), `gcom <msg>` (add + commit), `gpush`, `gpull`, `gcl`, `lazyg <msg>` (add + commit + push) and `g` (jump to the GitHub directory, via [zoxide](https://github.com/ajeetdsouza/zoxide) when installed).
+- File helpers: `mkcd` (create and enter a directory), `ff` (find files by name), `nf` (new file), `trash` (move to the Recycle Bin instead of deleting permanently), `la` (list all visible items).
+- Clipboard: `cpy` (copy text), `pst` (paste text).
+- System: `sysinfo`, `flushdns`, `top`, `k9` (shorthand for pkill), `Clear-Cache`, `admin`/`su` (start an elevated shell in the current directory).
+- Navigation: `docs` (Documents), `dtop` (Desktop).
+- Profile: `Edit-Profile` (`ep`), `Invoke-Profile` (reload the profile), `Show-Help`.
+- Shell UX: PSReadLine syntax colors, list-view predictions, history search with the arrow keys, `Tab` menu completion, and secrets (passwords/tokens/keys) are kept out of the PSReadLine history file. When `zoxide` is installed it is initialised automatically.
 
 ## Contributing 🤝
 - Feel free to fork, modify, and contribute improvements or additional features.

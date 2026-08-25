@@ -106,6 +106,131 @@ if (-not $?) {Install-Module -Name Microsoft.WinGet.CommandNotFound}
 # Inject OhMyPosh
 oh-my-posh init pwsh --config $OhMyPoshConfig | Invoke-Expression
 
+# ----------------------------------------------------------
+# Shell UX: PSReadLine, completions and window title
+# (interactive sessions only)
+# ----------------------------------------------------------
+
+function Test-InteractiveShell {
+    try {
+        return $Host.Name -eq 'ConsoleHost' -and
+            -not [Console]::IsInputRedirected -and
+            -not [Console]::IsOutputRedirected
+    } catch {
+        return $false
+    }
+}
+
+$isInteractiveShell = Test-InteractiveShell
+
+function Initialize-PSReadLine {
+    if (-not $isInteractiveShell -or -not (Get-Module -ListAvailable -Name PSReadLine)) {
+        return
+    }
+
+    $options = @{
+        EditMode                      = 'Windows'
+        HistoryNoDuplicates           = $true
+        HistorySearchCursorMovesToEnd = $true
+        PredictionSource              = 'HistoryAndPlugin'
+        PredictionViewStyle           = 'ListView'
+        BellStyle                     = 'None'
+        MaximumHistoryCount           = 10000
+        Colors                        = @{
+            Command   = '#87CEEB'
+            Parameter = '#98FB98'
+            Operator  = '#FFB6C1'
+            Variable  = '#DDA0DD'
+            String    = '#FFDAB9'
+            Number    = '#B0E0E6'
+            Type      = '#F0E68C'
+            Comment   = '#D3D3D3'
+            Keyword   = '#8367c7'
+            Error     = '#FF6347'
+        }
+    }
+
+    if ($PSVersionTable.PSEdition -ne 'Core') {
+        # Older PSReadLine on Windows PowerShell 5.1 has no prediction support.
+        $options.Remove('PredictionSource')
+        $options.Remove('PredictionViewStyle')
+    }
+
+    try {
+        Set-PSReadLineOption @options
+    } catch {
+        Write-Warning "Unable to apply PSReadLine options: $_"
+    }
+
+    Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
+    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+w' -Function BackwardDeleteWord
+    Set-PSReadLineKeyHandler -Chord 'Alt+d' -Function DeleteWord
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+LeftArrow' -Function BackwardWord
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+RightArrow' -Function ForwardWord
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+z' -Function Undo
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+y' -Function Redo
+
+    # Keep secrets out of the PSReadLine history file
+    Set-PSReadLineOption -AddToHistoryHandler {
+        param([string]$line)
+        $line -notmatch '(?i)(password|secret|token|apikey|connectionstring)'
+    }
+}
+
+function Register-CustomCompletion {
+    if (-not $isInteractiveShell -or $PSVersionTable.PSEdition -ne 'Core') {
+        return
+    }
+
+    $completionMap = @{
+        git  = @('status', 'add', 'commit', 'push', 'pull', 'clone', 'checkout')
+        npm  = @('install', 'start', 'run', 'test', 'build')
+        deno = @('run', 'compile', 'bundle', 'test', 'lint', 'fmt', 'cache', 'info', 'doc', 'upgrade')
+    }
+
+    Register-ArgumentCompleter -Native -CommandName git, npm, deno -ScriptBlock {
+        param($wordToComplete, $commandAst, $cursorPosition)
+        $null = $cursorPosition
+        $completionWord = $wordToComplete
+        $map = $completionMap
+        $command = $commandAst.CommandElements[0].Value
+        if ($map.ContainsKey($command)) {
+            $map[$command] |
+                Where-Object { $_ -like "$completionWord*" } |
+                ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
+        }
+    }.GetNewClosure()
+
+    if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+        Register-ArgumentCompleter -Native -CommandName dotnet -ScriptBlock {
+            param($wordToComplete, $commandAst, $cursorPosition)
+            $null = $wordToComplete
+            dotnet complete --position $cursorPosition $commandAst.ToString() |
+                ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
+        }
+    }
+}
+
+Initialize-PSReadLine
+Register-CustomCompletion
+
+if ($isInteractiveShell) {
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    try {
+        $adminSuffix = if ($isAdmin) { ' [ADMIN]' } else { '' }
+        $Host.UI.RawUI.WindowTitle = "PowerShell $($PSVersionTable.PSVersion)$adminSuffix"
+    } catch {
+        Write-Verbose "Unable to set console title: $_"
+    }
+
+    # Start zoxide only when it is already installed; skip silently if not.
+    if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+        Invoke-Expression (& { (zoxide init --cmd z powershell | Out-String) })
+    }
+}
 
 # ----------------------------------------------------------
 # Deferred loading

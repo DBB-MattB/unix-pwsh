@@ -2,8 +2,8 @@ function Test-ExecPolicy {
     $execPolicy = Get-ExecutionPolicy
     if ($execPolicy -ne "RemoteSigned") {
         Write-Host "Execution Policy is not set to RemoteSigned. This can lead to errors, when trying to install this shell." -ForegroundColor Yellow
-        Read-Host "Would you like to set the Execution Policy to RemoteSigned? (Y/N)"
-        if ($? -eq 'Y') {
+        $answer = Read-Host "Would you like to set the Execution Policy to RemoteSigned? (Y/N)"
+        if ($answer -match '^[Yy]') {
             Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
         }
     }
@@ -103,7 +103,7 @@ function Initialize-DevEnv {
             $importedModuleCount++
         }
     }
-    if ($importedModuleCount = @($modules).Count) {
+    if ($importedModuleCount -eq @($modules).Count) {
         New-Item -ItemType File -Path $xConfigPath | Out-Null
     }
     Write-Host "✅ Imported $importedModuleCount modules successfully." -ForegroundColor Green
@@ -114,7 +114,7 @@ function Initialize-DevEnv {
     $font_installed_var = "${font}_installed"
     if (((Get-Variable -Name $font_installed_var).Value) -ne "True") {
         . Invoke-Expression (Invoke-WebRequest -Uri "$githubBaseURL/pwsh_helper.ps1" -UseBasicParsing).Content
-        Test-$font
+        Test-NerdFontInstalled
     }
     Test-sudo
     Write-Host "✅ Successfully initialized Pwsh with all modules and applications`n" -ForegroundColor Green
