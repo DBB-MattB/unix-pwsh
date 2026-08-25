@@ -216,6 +216,7 @@ function Initialize-Module {
             }
         } else {
             Write-Host "❌ Skipping Module initialization check due to GitHub.com not responding within 1 second." -ForegroundColor Yellow
+            Set-ConfigValue -Key "${moduleName}_installed" -Value "False"
             return $false
         }
     } else {
