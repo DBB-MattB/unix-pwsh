@@ -51,7 +51,7 @@ function grep {
     }
     end {
         if ($Path) {
-            Get-ChildItem -Path $Path -Recurse -File -ErrorAction SilentlyContinue | Select-String -Pattern $Pattern
+            Get-ChildItem -Path $Path -Recurse -File | Select-String -Pattern $Pattern
         } elseif ($pipelineInput.Count -gt 0) {
             $pipelineInput | Select-String -Pattern $Pattern
         } else {
@@ -76,21 +76,26 @@ function pkill {
 function head {
     param (
         [string]$Path,
-        [int]$n = 10
+        [int]$n = 10,
+        [Parameter(ValueFromPipeline = $true)]
+        [object]$InputObject
     )
     begin {
-        $buffer = [System.Collections.Generic.List[object]]::new()
+        if (-not $Path) {
+            $selector = { Select-Object -First $n }.GetNewClosure().GetSteppablePipeline()
+            $selector.Begin($PSCmdlet)
+        }
     }
     process {
-        if (-not $Path -and $buffer.Count -lt $n) {
-            $buffer.Add($_)
+        if (-not $Path) {
+            $selector.Process($InputObject)
         }
     }
     end {
         if ($Path) {
             Get-Content $Path -Head $n
         } else {
-            $buffer
+            $selector.End()
         }
     }
 }
@@ -369,13 +374,24 @@ function Get-PubIP { (Invoke-RestMethod -Uri 'https://ifconfig.me/ip').Trim() }
 Set-Alias -Name pubip -Value Get-PubIP -Force
 
 # Retrieve the private IPv4 addresses
-function Get-PrivIP { (Get-NetIPAddress | Where-Object -Property AddressFamily -EQ -Value 'IPv4').IPAddress }
+function Get-PrivIP {
+    Get-NetIPAddress -AddressFamily IPv4 |
+        Where-Object {
+            $_.IPAddress -match '^10\.' -or
+            $_.IPAddress -match '^192\.168\.' -or
+            $_.IPAddress -match '^172\.(1[6-9]|2[0-9]|3[0-1])\.'
+        } |
+        Select-Object -ExpandProperty IPAddress
+}
 
 # Lazy git: pull, stage everything, commit the given message and push
 function gitpush {
     git pull
+    if ($LASTEXITCODE -ne 0) { return }
     git add .
+    if ($LASTEXITCODE -ne 0) { return }
     git commit -m ($args -join ' ')
+    if ($LASTEXITCODE -ne 0) { return }
     git push
 }
 
@@ -384,16 +400,16 @@ function gitpush {
 function Send-Wastebin {
     [CmdletBinding()]
     param (
-        [Parameter(Position = 0, ValueFromPipeline = $true)]
+        [Parameter(Position = 0, ValueFromPipeline = $true, ValueFromRemainingArguments = $true)]
         [string[]]$Content,
 
-        [Parameter(Position = 1)]
+        [Parameter()]
         [int]$ExpirationTime = 3600,
 
-        [Parameter(Position = 2)]
+        [Parameter()]
         [bool]$BurnAfterReading = $false,
 
-        [Parameter(Position = 3)]
+        [Parameter()]
         [switch]$Help
     )
     begin {
@@ -454,7 +470,7 @@ function mkcd {
 # Find files recursively by name
 function ff {
     param([Parameter(Mandatory)][string]$Name)
-    Get-ChildItem -Recurse -Filter "*$Name*" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+    Get-ChildItem -Recurse -File -Filter "*$Name*" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 }
 
 # Create a new empty file in the current directory
@@ -514,7 +530,9 @@ function gcom {
 }
 function lazyg {
     git add .
+    if ($LASTEXITCODE -ne 0) { return }
     git commit -m ($args -join ' ')
+    if ($LASTEXITCODE -ne 0) { return }
     git push
 }
 # Note: no 'gp' alias — gp is a built-in AllScope alias (Get-ItemProperty) and cannot be overridden.
@@ -525,9 +543,14 @@ function lazyg {
 
 # Go to the GitHub directory (via zoxide when available)
 function g {
+    $startLocation = (Get-Location).ProviderPath
+    $zoxideResult = $null
     if (Get-Command __zoxide_z -ErrorAction SilentlyContinue) {
-        __zoxide_z github
-    } elseif (Test-Path -Path "$HOME\github") {
+        $zoxideResult = __zoxide_z github
+    }
+    $locationChanged = (Get-Location).ProviderPath -ne $startLocation
+    $hasZoxideResult = -not [string]::IsNullOrWhiteSpace(($zoxideResult | Select-Object -Last 1))
+    if (-not $locationChanged -and -not $hasZoxideResult -and (Test-Path -Path "$HOME\github")) {
         Set-Location "$HOME\github"
     }
 }
@@ -567,7 +590,8 @@ function admin {
     $shellArgs = if ($args.Count -gt 0) { @('-NoExit', '-Command', ($args -join ' ')) } else { @('-NoExit') }
 
     if (Get-Command wt -ErrorAction SilentlyContinue) {
-        Start-Process wt -Verb RunAs -ArgumentList (@('-d', $cwd, $shell) + $shellArgs)
+        $quotedCwd = "`"$cwd`""
+        Start-Process wt -Verb RunAs -ArgumentList (@('-d', $quotedCwd, $shell) + $shellArgs)
     } else {
         Start-Process $shell -Verb RunAs -WorkingDirectory $cwd -ArgumentList $shellArgs
     }
@@ -620,6 +644,26 @@ Set-Alias -Name ep -Value Edit-Profile -Force
 
 # Reload the PowerShell profile in the current session
 function Invoke-Profile {
+    if ($global:unixPwshDeferredJob) {
+        if ($global:unixPwshDeferredJob.State -eq 'Running') {
+            Stop-Job -Job $global:unixPwshDeferredJob -ErrorAction SilentlyContinue
+        }
+        Remove-Job -Job $global:unixPwshDeferredJob -Force -ErrorAction SilentlyContinue
+        $global:unixPwshDeferredJob = $null
+    }
+    if ($global:Powershell -is [System.Management.Automation.PowerShell]) {
+        try { $global:Powershell.Dispose() } catch {}
+        Remove-Variable -Name Powershell -Scope Global -ErrorAction SilentlyContinue
+    }
+    if ($global:Runspace -is [System.Management.Automation.Runspaces.Runspace]) {
+        try {
+            if ($global:Runspace.RunspaceStateInfo.State -eq 'Opened') {
+                $global:Runspace.Close()
+            }
+            $global:Runspace.Dispose()
+        } catch {}
+        Remove-Variable -Name Runspace -Scope Global -ErrorAction SilentlyContinue
+    }
     . $PROFILE.CurrentUserCurrentHost
 }
 

@@ -17,6 +17,17 @@ if ($pingResult.StatusCode -eq 0) {
     $canConnectToGitHub = $false
 }
 
+function Start-DeferredProfileJob {
+    if ($global:unixPwshDeferredJob) {
+        if ($global:unixPwshDeferredJob.State -eq 'Running') {
+            Stop-Job -Job $global:unixPwshDeferredJob -ErrorAction SilentlyContinue
+        }
+        Remove-Job -Job $global:unixPwshDeferredJob -Force -ErrorAction SilentlyContinue
+        $global:unixPwshDeferredJob = $null
+    }
+    $global:unixPwshDeferredJob = Start-Job -Name 'unix-pwsh-deferred-init' -ScriptBlock $scriptBlock -ArgumentList $githubUser, $files, $baseDir, $canConnectToGitHub, $githubBaseURL
+}
+
 # Define vars.
 $baseDir = "$HOME\unix-pwsh"
 $configPath = "$baseDir\pwsh_custom_config.yml"
@@ -132,8 +143,6 @@ function Initialize-PSReadLine {
         EditMode                      = 'Windows'
         HistoryNoDuplicates           = $true
         HistorySearchCursorMovesToEnd = $true
-        PredictionSource              = 'HistoryAndPlugin'
-        PredictionViewStyle           = 'ListView'
         BellStyle                     = 'None'
         MaximumHistoryCount           = 10000
         Colors                        = @{
@@ -150,16 +159,24 @@ function Initialize-PSReadLine {
         }
     }
 
-    if ($PSVersionTable.PSEdition -ne 'Core') {
-        # Older PSReadLine on Windows PowerShell 5.1 has no prediction support.
-        $options.Remove('PredictionSource')
-        $options.Remove('PredictionViewStyle')
-    }
-
+    $psReadLineConfigured = $false
     try {
         Set-PSReadLineOption @options
+        $psReadLineConfigured = $true
     } catch {
         Write-Warning "Unable to apply PSReadLine options: $_"
+    }
+
+    $psReadLineCommand = Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue
+    $supportsPrediction = $psReadLineConfigured -and $psReadLineCommand -and
+        $psReadLineCommand.Parameters.ContainsKey('PredictionSource') -and
+        $psReadLineCommand.Parameters.ContainsKey('PredictionViewStyle')
+    if ($supportsPrediction) {
+        try {
+            Set-PSReadLineOption -PredictionSource HistoryAndPlugin -PredictionViewStyle ListView
+        } catch {
+            Write-Verbose "Unable to apply PSReadLine prediction options: $_"
+        }
     }
 
     Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
@@ -176,7 +193,7 @@ function Initialize-PSReadLine {
     # Keep secrets out of the PSReadLine history file
     Set-PSReadLineOption -AddToHistoryHandler {
         param([string]$line)
-        $line -notmatch '(?i)(password|secret|token|apikey|connectionstring)'
+        $line -notmatch '(?i)(password|passphrase|secret|token|api[_-]?key|private[_-]?key|connection[_-]?string)'
     }
 }
 
@@ -196,6 +213,9 @@ function Register-CustomCompletion {
         $null = $cursorPosition
         $completionWord = $wordToComplete
         $map = $completionMap
+        if ($commandAst.CommandElements.Count -gt 2) {
+            return
+        }
         $command = $commandAst.CommandElements[0].Value
         if ($map.ContainsKey($command)) {
             $map[$command] |
@@ -242,13 +262,13 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     if ($injectionMethod -eq "local") {
         . "$baseDir\functions.ps1"
         # Execute the background tasks
-        Start-Job -ScriptBlock $scriptBlock -ArgumentList $githubUser, $files, $baseDir, $canConnectToGitHub, $githubBaseURL
+        Start-DeferredProfileJob
         } else {
         if ($global:canConnectToGitHub) {
             #Load Functions
             . Invoke-Expression (Invoke-WebRequest -Uri "$githubBaseURL/functions.ps1" -UseBasicParsing).Content
             # Update PowerShell in the background
-            Start-Job -ScriptBlock $scriptBlock -ArgumentList $githubUser, $files, $baseDir, $canConnectToGitHub, $githubBaseURL
+                Start-DeferredProfileJob
                 } else {
             Write-Host "❌ Skipping initialisation due to GitHub not responding within 1 second." -ForegroundColor Red
         }
@@ -261,13 +281,13 @@ $Deferred = {
     if ($injectionMethod -eq "local") {
         . "$baseDir\functions.ps1"
         # Execute the background tasks
-        Start-Job -ScriptBlock $scriptBlock -ArgumentList $githubUser, $files, $baseDir, $canConnectToGitHub, $githubBaseURL
+        Start-DeferredProfileJob
         } else {
         if ($global:canConnectToGitHub) {
             #Load Functions
             . Invoke-Expression (Invoke-WebRequest -Uri "$githubBaseURL/functions.ps1" -UseBasicParsing).Content
             # Update PowerShell in the background
-            Start-Job -ScriptBlock $scriptBlock -ArgumentList $githubUser, $files, $baseDir, $canConnectToGitHub, $githubBaseURL
+            Start-DeferredProfileJob
             } else {
             Write-Host "❌ Skipping initialisation due to GitHub not responding within 1 second." -ForegroundColor Red
         }
@@ -278,10 +298,22 @@ $Deferred = {
 $GlobalState = [psmoduleinfo]::new($false)
 $GlobalState.SessionState = $ExecutionContext.SessionState
 # to run our code asynchronously
-$Runspace = [runspacefactory]::CreateRunspace($Host)
-$Powershell = [powershell]::Create($Runspace)
-$Runspace.Open()
-$Runspace.SessionStateProxy.PSVariable.Set('GlobalState', $GlobalState)
+if ($global:Powershell -is [System.Management.Automation.PowerShell]) {
+    try { $global:Powershell.Dispose() } catch {}
+}
+if ($global:Runspace -is [System.Management.Automation.Runspaces.Runspace]) {
+    try {
+        if ($global:Runspace.RunspaceStateInfo.State -eq 'Opened') {
+            $global:Runspace.Close()
+        }
+        $global:Runspace.Dispose()
+    } catch {}
+}
+
+$global:Runspace = [runspacefactory]::CreateRunspace($Host)
+$global:Powershell = [powershell]::Create($global:Runspace)
+$global:Runspace.Open()
+$global:Runspace.SessionStateProxy.PSVariable.Set('GlobalState', $GlobalState)
 # ArgumentCompleters are set on the ExecutionContext, not the SessionState
 # Note that $ExecutionContext is not an ExecutionContext, it's an EngineIntrinsics 😡
 $Private = [Reflection.BindingFlags]'Instance, NonPublic'
@@ -303,8 +335,8 @@ if ($null -eq $NAC)
     $ContextNACProperty.SetValue($Context, $NAC)
 }
 # Get the AutomationEngine and ExecutionContext of the runspace
-$RSEngineField = $Runspace.GetType().GetField('_engine', $Private)
-$RSEngine = $RSEngineField.GetValue($Runspace)
+$RSEngineField = $global:Runspace.GetType().GetField('_engine', $Private)
+$RSEngine = $RSEngineField.GetValue($global:Runspace)
 $EngineContextField = $RSEngine.GetType().GetFields($Private) | Where-Object {$_.FieldType.Name -eq 'ExecutionContext'}
 $RSContext = $EngineContextField.GetValue($RSEngine)
 # Set the runspace to use the global ArgumentCompleters
@@ -320,4 +352,4 @@ $Wrapper = {
     Start-Sleep -Milliseconds 100
     . $GlobalState {. $Deferred; Remove-Variable Deferred}
 }
-$null = $Powershell.AddScript($Wrapper.ToString()).BeginInvoke()
+$null = $global:Powershell.AddScript($Wrapper.ToString()).BeginInvoke()

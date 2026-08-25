@@ -98,13 +98,18 @@ function Initialize-DevEnv {
         if ($isInstalled -ne "True") {
             Write-Host "Initializing $($module.Name) module..."
             Initialize-Module $module.Name
-        } else {
-            Import-Module $module.Name
+        }
+        try {
+            Import-Module -Name $module.Name -ErrorAction Stop
             $importedModuleCount++
+            Set-ConfigValue -Key $module.ConfigKey -Value "True"
+        } catch {
+            Write-Warning "Unable to import module $($module.Name): $_"
+            Set-ConfigValue -Key $module.ConfigKey -Value "False"
         }
     }
     if ($importedModuleCount -eq @($modules).Count) {
-        New-Item -ItemType File -Path $xConfigPath | Out-Null
+        New-Item -ItemType File -Path $xConfigPath -Force | Out-Null
     }
     Write-Host "✅ Imported $importedModuleCount modules successfully." -ForegroundColor Green
     if ($ohmyposh_installed -ne "True") { 
@@ -130,6 +135,7 @@ function Initialize-DevEnv {
 
 # Function to create config file
 function Install-Config {
+    Test-ExecPolicy
     if (-not (Test-Path -Path $configPath)) {
         # First we need to make sure the folder for the config file exists.
         $configDirectory = Split-Path -Path $configPath
