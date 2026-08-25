@@ -107,7 +107,9 @@ function Test-ohmyposh {
 }
 
 function Test-NerdFontInstalled {
-    $nerdfonts = Get-Font *$font*
+    $nerdfonts = Get-Font "*$font*Nerd Font*" | Where-Object {
+        $_.ToString() -match '(?i)Nerd\s*Font'
+    }
     if ($nerdfonts) {
         Set-ConfigValue -Key "${font}_installed" -Value "True"
     } else {
@@ -115,6 +117,14 @@ function Test-NerdFontInstalled {
         $installNerdFonts = Read-Host "Do you want to install $font NerdFont? (Y/N)"
         if ($installNerdFonts -eq 'Y' -or $installNerdFonts -eq 'y') {
             Install-NerdFont
+            $installedNerdFonts = Get-Font "*$font*Nerd Font*" | Where-Object {
+                $_.ToString() -match '(?i)Nerd\s*Font'
+            }
+            if ($installedNerdFonts) {
+                Set-ConfigValue -Key "${font}_installed" -Value "True"
+            } else {
+                Set-ConfigValue -Key "${font}_installed" -Value "False"
+            }
         } else {
             Write-Host "❌ NerdFonts installation skipped." -ForegroundColor Yellow
             Set-ConfigValue -Key "${font}_installed" -Value "False"
