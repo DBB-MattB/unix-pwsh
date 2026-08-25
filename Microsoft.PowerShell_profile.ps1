@@ -23,9 +23,9 @@ $configPath = "$baseDir\pwsh_custom_config.yml"
 $xConfigPath = "$baseDir\pwsh_full_custom_config.yml" # This file exists if the prompt is fully installed with all dependencies.
 $promptColor = "DarkCyan" # Choose a colour in which the hello text is colored; All Colours: Black, Blue, Cyan, DarkBlue, DarkCyan, DarkGray, DarkGreen, DarkMagenta, DarkRed, DarkYellow, Grey, Green, Magenta, Red, White, Yellow.
 $font="FiraCode" # Font-Display and variable Name, name the same as font_folder
-$font_url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip" # Put here the URL of the font file that should be installed
-$fontFileName = "FiraCodeNerdFontMono-Regular.ttf" # Put here the font file that should be installed
-$font_folder = "FiraCode" # Put here the name of the zip folder of the downloaded font, but without the .zip extension.
+$font_url = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/Hack.zip" # Put here the URL of the font file that should be installed
+$fontFileName = "HackNerdFont-Regular.ttf" # Put here the font file that should be installed
+$font_folder = "Hack" # Put here the name of the zip folder of the downloaded font, but without the .zip extension.
 
 $modules = @( 
     # This is a list of modules that need to be imported/installed
